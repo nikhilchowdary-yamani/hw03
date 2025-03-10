@@ -13,14 +13,30 @@ class CardWidget extends StatelessWidget {
     return GestureDetector(
       onTap: () => Provider.of<GameProvider>(context, listen: false).flipCard(card),
       child: AnimatedContainer(
-        duration: Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 300),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           color: Colors.blue,
-          image: card.isFaceUp
-              ? DecorationImage(image: AssetImage(card.image), fit: BoxFit.cover)
-              : DecorationImage(image: AssetImage('assets/card_back.png'), fit: BoxFit.cover),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 5,
+              offset: const Offset(2, 2),
+            ),
+          ],
+          image: DecorationImage(
+            image: AssetImage(
+              card.isFaceUp ? card.image : 'assets/card_back.png'
+            ), 
+            fit: BoxFit.cover
+          ),
         ),
+        child: card.isMatched ? Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.green, width: 3),
+          ),
+        ) : null,
       ),
     );
   }
