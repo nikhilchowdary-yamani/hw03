@@ -11,7 +11,7 @@ class GameProvider with ChangeNotifier {
   Timer? _timer;
   bool _isPaused = false;
   int _bestScore = 0;
-  bool _isProcessing = false; // Add flag to prevent multiple card flips during animation
+  bool _isProcessing = false; 
 
   List<CardModel> get cards => _cards;
   int get score => _score;
@@ -24,14 +24,12 @@ class GameProvider with ChangeNotifier {
   }
 
   void initializeGame() {
-    // Create pairs of cards
     final List<CardModel> cardPairs = [];
-    for (int i = 1; i <= 8; i++) { // Assuming 8 pairs for a 4x4 grid
+    for (int i = 1; i <= 8; i++) {
       cardPairs.add(CardModel(id: '${i}a', image: 'assets/card$i.png'));
       cardPairs.add(CardModel(id: '${i}b', image: 'assets/card$i.png'));
     }
     
-    // Shuffle the cards
     cardPairs.shuffle();
     _cards = cardPairs;
     
@@ -65,36 +63,28 @@ class GameProvider with ChangeNotifier {
   }
 
   void flipCard(CardModel card) {
-    // Don't allow flipping if game is paused, card is matched, or we're processing a match
     if (card.isMatched || _isPaused || _isProcessing) {
       return;
     }
 
-    // Don't allow flipping a card that's already face up
     if (card.isFaceUp) {
       return;
     }
 
-    // Create a new list to maintain immutability
     final int cardIndex = _cards.indexWhere((c) => c.id == card.id);
     if (cardIndex == -1) return;
 
-    // Create a new list with the updated card
     final List<CardModel> updatedCards = List.from(_cards);
     updatedCards[cardIndex] = updatedCards[cardIndex].copyWith(isFaceUp: true);
     _cards = updatedCards;
 
     if (_selectedCard == null) {
-      // First card flipped
       _selectedCard = _cards[cardIndex];
       notifyListeners();
     } else {
-      // Second card flipped
-      _isProcessing = true; // Prevent further card flips during animation
+      _isProcessing = true;
       
       if (_selectedCard!.image == card.image && _selectedCard!.id != card.id) {
-        // Found a match
-        // Mark both cards as matched
         final int selectedIndex = _cards.indexWhere((c) => c.id == _selectedCard!.id);
         if (selectedIndex != -1) {
           final List<CardModel> updatedCards = List.from(_cards);
@@ -107,20 +97,16 @@ class GameProvider with ChangeNotifier {
         _isProcessing = false;
         notifyListeners();
         
-        // Check for win after a match
         if (_checkWinCondition()) {
           _timer?.cancel();
           _updateBestScore();
-          // Use a shorter delay for the win dialog
           Future.delayed(Duration(milliseconds: 500), () {
             _showWinDialog();
           });
         }
       } else {
-        // No match
-        notifyListeners(); // Update UI to show the second card
+        notifyListeners();
         
-        // Wait and then flip both cards back
         Future.delayed(Duration(milliseconds: 1000), () {
           final int selectedIndex = _cards.indexWhere((c) => c.id == _selectedCard!.id);
           if (selectedIndex != -1) {
@@ -129,7 +115,7 @@ class GameProvider with ChangeNotifier {
             updatedCards[cardIndex] = updatedCards[cardIndex].copyWith(isFaceUp: false);
             _cards = updatedCards;
           }
-          _score = (_score - 5 >= 0) ? _score - 5 : 0; // Prevent negative score
+          _score = (_score - 5 >= 0) ? _score - 5 : 0;
           _selectedCard = null;
           _isProcessing = false;
           notifyListeners();
@@ -162,7 +148,6 @@ class GameProvider with ChangeNotifier {
 
   void _showWinDialog() {
     print("You win! Final Score: $_score");
-    // This would be replaced with an actual dialog in the UI
   }
 
   @override

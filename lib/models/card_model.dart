@@ -11,7 +11,6 @@ class CardModel {
     this.isMatched = false,
   });
 
-  // Add a copy method to create new instances when updating state
   CardModel copyWith({
     String? id,
     String? image,
