@@ -11,25 +11,36 @@ class GameProvider with ChangeNotifier {
   Timer? _timer;
   bool _isPaused = false;
   int _bestScore = 0;
-  bool _isProcessing = false; 
+  bool _isProcessing = false; // Add flag to prevent multiple card flips during animation
+  bool _isGameStarted = false;
+  bool _isGameWon = false;
 
   List<CardModel> get cards => _cards;
   int get score => _score;
   int get timeElapsed => _timeElapsed;
   int get bestScore => _bestScore;
   bool get isPaused => _isPaused;
+  bool get isGameStarted => _isGameStarted;
+  bool get isGameWon => _isGameWon;
 
   GameProvider() {
     _loadBestScore();
   }
 
+  void startGame() {
+    _isGameStarted = true;
+    initializeGame();
+  }
+
   void initializeGame() {
+    // Create pairs of cards
     final List<CardModel> cardPairs = [];
-    for (int i = 1; i <= 8; i++) {
+    for (int i = 1; i <= 8; i++) { // Assuming 8 pairs for a 4x4 grid
       cardPairs.add(CardModel(id: '${i}a', image: 'assets/card$i.png'));
       cardPairs.add(CardModel(id: '${i}b', image: 'assets/card$i.png'));
     }
     
+    // Shuffle the cards
     cardPairs.shuffle();
     _cards = cardPairs;
     
@@ -38,6 +49,7 @@ class GameProvider with ChangeNotifier {
     _timeElapsed = 0;
     _isPaused = false;
     _isProcessing = false;
+    _isGameWon = false;
     _startTimer();
     notifyListeners();
   }
@@ -63,28 +75,36 @@ class GameProvider with ChangeNotifier {
   }
 
   void flipCard(CardModel card) {
-    if (card.isMatched || _isPaused || _isProcessing) {
+    // Don't allow flipping if game is paused, card is matched, or we're processing a match
+    if (card.isMatched || _isPaused || _isProcessing || _isGameWon) {
       return;
     }
 
+    // Don't allow flipping a card that's already face up
     if (card.isFaceUp) {
       return;
     }
 
+    // Create a new list to maintain immutability
     final int cardIndex = _cards.indexWhere((c) => c.id == card.id);
     if (cardIndex == -1) return;
 
+    // Create a new list with the updated card
     final List<CardModel> updatedCards = List.from(_cards);
     updatedCards[cardIndex] = updatedCards[cardIndex].copyWith(isFaceUp: true);
     _cards = updatedCards;
 
     if (_selectedCard == null) {
+      // First card flipped
       _selectedCard = _cards[cardIndex];
       notifyListeners();
     } else {
-      _isProcessing = true;
+      // Second card flipped
+      _isProcessing = true; // Prevent further card flips during animation
       
       if (_selectedCard!.image == card.image && _selectedCard!.id != card.id) {
+        // Found a match
+        // Mark both cards as matched
         final int selectedIndex = _cards.indexWhere((c) => c.id == _selectedCard!.id);
         if (selectedIndex != -1) {
           final List<CardModel> updatedCards = List.from(_cards);
@@ -97,16 +117,18 @@ class GameProvider with ChangeNotifier {
         _isProcessing = false;
         notifyListeners();
         
+        // Check for win after a match
         if (_checkWinCondition()) {
           _timer?.cancel();
           _updateBestScore();
-          Future.delayed(Duration(milliseconds: 500), () {
-            _showWinDialog();
-          });
+          _isGameWon = true;
+          notifyListeners();
         }
       } else {
-        notifyListeners();
+        // No match
+        notifyListeners(); // Update UI to show the second card
         
+        // Wait and then flip both cards back
         Future.delayed(Duration(milliseconds: 1000), () {
           final int selectedIndex = _cards.indexWhere((c) => c.id == _selectedCard!.id);
           if (selectedIndex != -1) {
@@ -115,7 +137,7 @@ class GameProvider with ChangeNotifier {
             updatedCards[cardIndex] = updatedCards[cardIndex].copyWith(isFaceUp: false);
             _cards = updatedCards;
           }
-          _score = (_score - 5 >= 0) ? _score - 5 : 0;
+          _score = (_score - 5 >= 0) ? _score - 5 : 0; // Prevent negative score
           _selectedCard = null;
           _isProcessing = false;
           notifyListeners();
@@ -144,10 +166,6 @@ class GameProvider with ChangeNotifier {
     } catch (e) {
       print('Error loading best score: $e');
     }
-  }
-
-  void _showWinDialog() {
-    print("You win! Final Score: $_score");
   }
 
   @override
